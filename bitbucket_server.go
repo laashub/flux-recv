@@ -19,10 +19,10 @@ func init() {
 	Sources[BitbucketServer] = handleBitbucketServerPush
 }
 
-func handleBitbucketServerPush(s fluxapi.Server, key []byte, w http.ResponseWriter, r *http.Request) {
+func handleBitbucketServerPush(s fluxapi.Server, ctx HookContext, w http.ResponseWriter, r *http.Request) {
 	// See incomplete docs: https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html
 
-	body, err := github.ValidatePayload(r, key)
+	body, err := github.ValidatePayload(r, ctx.key)
 	if err != nil {
 		http.Error(w, "The signature header is invalid.", http.StatusUnauthorized)
 		log(BitbucketServer, "invalid signature:", err.Error())
@@ -47,12 +47,12 @@ func handleBitbucketServerPush(s fluxapi.Server, key []byte, w http.ResponseWrit
 	}
 
 	var grp errgroup.Group
-	ctx, cancel := context.WithTimeout(r.Context(), timeout)
+	nCtx, cancel := context.WithTimeout(r.Context(), timeout)
 	defer cancel()
 	for refID := range event.changeRefIDs("BRANCH") {
 		branch := strings.TrimPrefix(refID, "refs/heads/")
 		grp.Go(func() error {
-			return s.NotifyChange(ctx, fluxapi_v9.Change{
+			return s.NotifyChange(nCtx, fluxapi_v9.Change{
 				Kind: fluxapi_v9.GitChange,
 				Source: fluxapi_v9.GitUpdate{
 					URL:    repoURL,

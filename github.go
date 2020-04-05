@@ -18,8 +18,8 @@ func init() {
 	Sources[GitHub] = handleGithubPush
 }
 
-func handleGithubPush(s fluxapi.Server, key []byte, w http.ResponseWriter, r *http.Request) {
-	payload, err := github.ValidatePayload(r, key)
+func handleGithubPush(s fluxapi.Server, ctx HookContext, w http.ResponseWriter, r *http.Request) {
+	payload, err := github.ValidatePayload(r, ctx.key)
 	if err != nil {
 		http.Error(w, "The GitHub signature header is invalid.", 401)
 		log(GitHub, "invalid signature:", err.Error())

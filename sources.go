@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	fluxapi "github.com/fluxcd/flux/pkg/api"
@@ -17,7 +18,12 @@ import (
 	"github.com/fluxcd/flux/pkg/image"
 )
 
-type HookHandler func(s fluxapi.Server, key []byte, w http.ResponseWriter, r *http.Request)
+type HookContext struct {
+	key          []byte
+	registryHost string
+}
+
+type HookHandler func(s fluxapi.Server, ctx HookContext, w http.ResponseWriter, r *http.Request)
 
 var Sources = map[string]HookHandler{}
 
@@ -47,13 +53,16 @@ func HandlerFromEndpoint(baseDir, apiUrl string, ep Endpoint) (string, http.Hand
 
 	sha := sha256.New()
 	sha.Write(key)
+	sha.Write([]byte(ep.RegistryHost))
 	digest := fmt.Sprintf("%x", sha.Sum(nil))
+
+	registryHost := strings.TrimRight(ep.RegistryHost, "/")
 
 	apiClient := fluxclient.New(http.DefaultClient, fluxhttp.NewAPIRouter(), apiUrl, fluxclient.Token(""))
 
 	// 3. construct a handler from the above
 	return digest, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sourceHandler(apiClient, key, w, r)
+		sourceHandler(apiClient, HookContext{ key, registryHost}, w, r)
 	}), nil
 }
 

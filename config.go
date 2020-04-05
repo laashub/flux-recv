@@ -8,8 +8,9 @@ import (
 )
 
 type Endpoint struct {
-	Source  string `json:"source"`
-	KeyPath string `json:"keyPath"`
+	Source       string `json:"source"`
+	RegistryHost string `json:"registryHost,omitempty"`
+	KeyPath      string `json:"keyPath"`
 }
 
 type Config struct {

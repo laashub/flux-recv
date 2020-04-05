@@ -16,8 +16,8 @@ func init() {
 	Sources[GitLab] = handleGitlabPush
 }
 
-func handleGitlabPush(s fluxapi.Server, key []byte, w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("X-Gitlab-Token") != string(key) {
+func handleGitlabPush(s fluxapi.Server, ctx HookContext, w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-Gitlab-Token") != string(ctx.key) {
 		http.Error(w, "The Gitlab token does not match", http.StatusUnauthorized)
 		log(GitLab, "missing or incorrect X-Gitlab-Token header (!= shared secret)")
 		return
@@ -50,9 +50,9 @@ func handleGitlabPush(s fluxapi.Server, key []byte, w http.ResponseWriter, r *ht
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), timeout)
+	nCtx, cancel := context.WithTimeout(r.Context(), timeout)
 	defer cancel()
-	if err := s.NotifyChange(ctx, change); err != nil {
+	if err := s.NotifyChange(nCtx, change); err != nil {
 		http.Error(w, "Error forwarding hook", http.StatusInternalServerError)
 		log(GitLab, "error from downstream:", err.Error())
 		return
